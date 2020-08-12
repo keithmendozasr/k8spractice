@@ -10,12 +10,12 @@ export class NoMenu extends BaseComponent {
 
     render() {
         if(this.state.hasError)
-            return <p>An error has occurred</p>;
+            return <p key="mainview">An error has occurred</p>;
         else if(!this.state.data)
-            return <p>Waiting for data</p>;
+            return <p key="mainview">Waiting for data</p>;
         else {
             return (Object.entries(this.state.data.body).map(([key,val], index) => {
-                return <p id={key}>{key}: {val}</p>;
+                return <p key="someline-{key}">{key}: {val}</p>;
             }));
         }
     }

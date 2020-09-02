@@ -32,7 +32,5 @@ app = Flask(__name__, instance_relative_config=True)
 app.config['SECRET_KEY']=os.environ.get('SECRET_KEY')
 app.register_blueprint(front.bp, url_prefix='/api')
 app.register_blueprint(auth.bp, url_prefix='/api/auth')
-app.logger.debug(f"Secret key set to {app.secret_key}")
-app.logger.debug(f"Full config: {app.config}")
 app.logger.info('App ready')
 

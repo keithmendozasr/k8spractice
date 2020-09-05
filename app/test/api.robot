@@ -1,17 +1,22 @@
 *** Settings ***
 Documentation   Test k8s backend API
-Library         REST    ${API_HOST}
+Library         RequestsLibrary
+Library         Collections
+Test Setup      Create Session  API     ${API_HOST}
 
 *** Test Cases ***
 Check Menu
-    Given GET   /api/load
-    Then Integer    response status     200
-    And Integer     response body body parta    1
-    And Array   response body body partb    [ "a", "b", "c", "d" ]
-    And String  response body menu 0 title  item 1
+    ${resp}=    Get Request     API     /api/load
+    Status Should Be    200     ${resp}
+    ${data}=     Set Variable    ${resp.json()}
+    Log     ${data}
+    Should Be Equal As Integers     ${data['body']['parta']}    1
+    ${expected}=    Create List     a   b   c   d
+    Lists Should Be Equal   ${data['body']['partb']}   ${expected}
+    Should Be Equal     ${data['menu'][0]['title']}     item 1
 
 Check nomenu
-    Given GET   /api/nomenu
-    Then Integer    response status     200
-    And Null     response body menu
-    [Teardown]  Run Keyword If Test Failed  Output schema   response body
+    ${resp}=    Get Request     API     /api/nomenu
+    Status Should Be    200     ${resp}
+    ${data}=    Set Variable    ${resp.json()}
+    Should Be Equal     ${data['menu']}     ${None}

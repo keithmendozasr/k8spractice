@@ -1,9 +1,9 @@
 *** Settings ***
 Documentation   Test k8s backend auth API
-Library         REST    ${API_HOST}
+Library         RequestsLibrary
 Library         RedisLibrary
-Suite Setup     Flush Redis Cache
-Suite Teardown  Flush Redis Cache
+Library         Collections
+Test Setup      Initialize Test
 
 *** Variables ***
 ${PREFIX}   /api/auth
@@ -12,23 +12,24 @@ ${REDIS_PORT}   6379
 
 *** Test Cases ***
 Successful login
-    Given POST  ${PREFIX}/login     { "user": "user", "password": "password" }
-    Then Integer    response status     200
+    ${post_body}=   Create Dictionary   user=user   password=password
+    ${resp}=    Post Request    API     ${PREFIX}/login     json=${post_body}
+    Status Should Be    200     ${resp}
     ${redis_conn}=  Connect To Redis    ${REDIS_HOST}   redis_port=${REDIS_PORT}
     @{key_list}=    Get All Match Keys  ${redis_conn}   token:*
     ${data}=    Get From Redis  ${redis_conn}   ${key_list[0]}
-    And Should Be Equal As Strings  user    ${data}
+    Should Be Equal As Strings  user    ${data}
     ${ttl}=     Get Time To Live In Redis   ${redis_conn}   ${key_list[0]}
-    And Should Be True  ${ttl} <= 600
-    [Teardown]  Flush All   ${redis_conn}
+    Should Be True  ${ttl} <= 600
 
 GET on login fail
-    Given GET   ${PREFIX}/login
-    Then Integer    response status     405
+    ${resp}     Get Request     API     ${PREFIX}/login
+    Status Should Be    405     ${resp}
 
 Login failed
-    Given POST  ${PREFIX}/login     { "user": "user", "password": "baddpass" }
-    Then Integer    response status     401
+    ${post_body}=   Create Dictionary   user=user   password=badpass
+    ${resp}=    Post Request    API     ${PREFIX}/login     json=${post_body}
+    Status Should Be    401     ${resp}
     ${redis_conn}=  Connect To Redis    ${REDIS_HOST}   redis_port=${REDIS_PORT}
     @{key_list}=    Get All Match Keys  ${redis_conn}   token:*
     And Should Be Empty     ${key_list}
@@ -37,3 +38,7 @@ Login failed
 Flush Redis Cache
     ${redis_conn}=  Connect To Redis   ${REDIS_HOST}   redis_port=${REDIS_PORT}
     Flush All   ${redis_conn}
+
+Initialize Test
+    Flush Redis Cache
+    Create Session  API     ${API_HOST}

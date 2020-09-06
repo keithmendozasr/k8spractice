@@ -1,11 +1,12 @@
 import logging
 from flask import Blueprint
 
-from . import baseresponse
+from . import baseresponse, auth
 
 bp = Blueprint('base', __name__)
 
 @bp.route('/load')
+@auth.session_required
 def load():
     """ Handle /load request"""
     logger = logging.getLogger(__name__)
@@ -29,6 +30,7 @@ def load():
     return dict(payload)
 
 @bp.route('/nomenu')
+@auth.session_required
 def no_menu():
     """ Handle /nomenu request"""
     logger = logging.getLogger(__name__)

@@ -21,6 +21,8 @@ Successful login
     Should Be Equal As Strings  user    ${data}
     ${ttl}=     Get Time To Live In Redis   ${redis_conn}   ${key_list[0]}
     Should Be True  ${ttl} <= 600
+    ${resp}=    Get Request     API     /api/nomenu
+    Status Should Be    200     ${resp}
 
 GET on login fail
     ${resp}     Get Request     API     ${PREFIX}/login
@@ -32,7 +34,7 @@ Login failed
     Status Should Be    401     ${resp}
     ${redis_conn}=  Connect To Redis    ${REDIS_HOST}   redis_port=${REDIS_PORT}
     @{key_list}=    Get All Match Keys  ${redis_conn}   token:*
-    And Should Be Empty     ${key_list}
+    Should Be Empty     ${key_list}
 
 *** Keywords ***
 Flush Redis Cache

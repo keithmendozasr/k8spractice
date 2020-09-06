@@ -38,15 +38,19 @@ def session_required(view):
             obj = make_response({'error': 'Invalid session'}, 401)
         else:
             g.user = __get_session_from_cache(token)
-            __logger.debug(f'g.user set to {g.user}')
-            obj = view(**kwargs)
+            if g.user is None:
+                __logger.info('Session expired')
+                obj = make_response({'error': 'Session expired'}, 401)
+            else:
+                __logger.debug(f'g.user set to {g.user}')
+                obj = view(**kwargs)
         return obj
 
     return wrapped_view
 
 @bp.route('/login', methods=['POST'])
 def __load_session_data():
-    """ Handle /authenticate request"""
+    """ Handle login request"""
     __logger = current_app.logger
     obj = None
     try:
@@ -64,3 +68,16 @@ def __load_session_data():
         obj = make_response({'error': 'Failed to parse data'}, 400)
 
     return obj
+
+@bp.route('/checksession', methods=['GET'])
+@session_required
+def __check_session_active():
+    """ Handle active session checking.
+
+        Note that the intent is for session_required to return the 401 response
+        if there's indeed not an active session associated to the requester.
+        For the time being, getting an HTTP 200 indicates an active session
+    """
+    __logger = current_app.logger
+    __logger.debug('Inside checksession')
+    return {}

@@ -15,12 +15,6 @@ Check Menu
     Lists Should Be Equal   ${data['body']['partb']}   ${expected}
     Should Be Equal     ${data['menu'][0]['title']}     item 1
 
-Check nomenu
-    ${resp}=    Get Request     API     /api/nomenu
-    Status Should Be    200     ${resp}
-    ${data}=    Set Variable    ${resp.json()}
-    Should Be Equal     ${data['menu']}     ${None}
-
 *** Keywords ***
 Initialize Test
     Create Session  API     ${API_HOST}

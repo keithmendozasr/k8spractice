@@ -11,6 +11,8 @@ export class NoMenu extends BaseComponent {
     render() {
         if(this.state.hasError)
             return <p key="mainview">An error has occurred</p>;
+        else if(this.state.needToAuthenticate)
+            return <p key="mainview">Need to login</p>
         else if(!this.state.data)
             return <p key="mainview">Waiting for data</p>;
         else {

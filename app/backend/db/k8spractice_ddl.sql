@@ -1,0 +1,7 @@
+CREATE SCHEMA IF NOT EXISTS k8spractice;
+CREATE TABLE IF NOT EXISTS k8spractice.user (
+    name VARCHAR(256) PRIMARY KEY,
+    password BYTEA NOT NULL,
+    iv BYTEA NOT NULL,
+    version INTEGER NOT NULL
+);

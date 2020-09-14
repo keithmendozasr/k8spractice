@@ -17,6 +17,7 @@ Front page unauthenticated
 
 Front page correct menu
     Given Login to site
+    And Wait Until Element Is Enabled   nav-load
     Then Correct nav item   nav-home    ${SITE_URL}/     Home
     And Correct nav item    nav-load    ${SITE_URL}/load     Load
     And Correct nav item    nav-nomenu  ${SITE_URL}/nomenu  No Menu
@@ -36,6 +37,7 @@ Navigate To No Menu
 Load Page
     Given Login to Site
     When Go To  ${SITE_URL}/load
+    And Wait Until Element Is Enabled   nav-load
     ${elem}=    Get WebElement  link:item 1
     ${link}=    Set Variable    ${SITE_URL}/item1
     Then Element Attribute Value Should Be  ${elem}     href    ${link}
@@ -57,7 +59,7 @@ Load Site
 Login to site
     When Load Site
     And Input Text     name:user   user
-    And Input Password  name:password   password
+    And Input Password  name:password   123456
     And Submit Form     loginform
 
 Correct nav item

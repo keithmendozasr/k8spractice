@@ -43,10 +43,21 @@ def __retrieve_user_info(username):
 
     data = cursor.fetchone()
     return {
-        'password': data[0],
-        'iv': data[1],
+        'password': data[0].tobytes(),
+        'iv': data[1].tobytes(),
         'version': data[2]
     }
+
+def __calc_password_hash(iv, cleartext, hasher):
+    hasher.update(iv)
+    hasher.update(cleartext)
+    return hasher.digest()
+
+def __build_hasher(version=1):
+    if version == 1:
+        return hashlib.sha256()
+
+    raise ValueError(f"Unexpected password hash version {version}")
 
 def session_required(view):
     @functools.wraps(view)
@@ -77,7 +88,6 @@ def __load_session_data():
     __logger = current_app.logger
     obj = None
     try:
-        __logger.debug(f"Connect using {current_app.config['DB_DSN']}")
         payload = request.get_json()
         username = payload.get('user')
         password = payload.get('password')
@@ -87,10 +97,11 @@ def __load_session_data():
             obj = make_response({'error': 'Missing data' }, 400)
         else:
             stored_data = __retrieve_user_info(username)
-            __logger.debug(f'stored_data: {stored_data}')
 
             if stored_data is not None:
-                if payload.get('user') == 'user' and payload.get('password') == 'password':
+                hasher = __build_hasher(stored_data['version'])
+                hashed_password = __calc_password_hash(stored_data['iv'], password.encode(), hasher);
+                if stored_data['password'] == __calc_password_hash(stored_data['iv'], password.encode(), stored_data['version']):
                     __logger.debug('User authorized')
                     token_val = uuid.uuid4().hex
                     __save_session_to_cache(token_val, payload.get('user'))

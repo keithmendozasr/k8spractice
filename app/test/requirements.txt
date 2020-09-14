@@ -2,3 +2,4 @@ wheel==0.35.1
 robotframework-seleniumlibrary==4.5.0
 robotframework-redislibrary==1.2.1
 robotframework-requests==0.7.1
+robotframework-databaselibrary==1.2.4

@@ -6,6 +6,8 @@ import uuid
 from flask import g, abort, make_response, session, current_app, Blueprint, request
 from werkzeug.exceptions import BadRequest
 import redis
+import psycopg2
+import hashlib
 
 bp = Blueprint('auth', __name__)
 
@@ -24,6 +26,27 @@ def __get_session_from_cache(token):
     user = r.get(f'token:{token}')
     __logger.debug(f'Token value: {user}')
     return user
+
+def __retrieve_user_info(username):
+    __logger = current_app.logger
+
+    conn = psycopg2.connect(current_app.config['DB_DSN'])
+    cursor = conn.cursor()
+    cursor.execute('SELECT password, iv, version FROM k8spractice.user WHERE name=%s', (username,))
+
+    if cursor.rowcount > 1:
+        raise ValueError(f"Got multiple entries for user {username} from the database")
+
+    if cursor.rowcount == 0:
+        __logger.info("User {user} not registered")
+        return None
+
+    data = cursor.fetchone()
+    return {
+        'password': data[0],
+        'iv': data[1],
+        'version': data[2]
+    }
 
 def session_required(view):
     @functools.wraps(view)
@@ -54,18 +77,31 @@ def __load_session_data():
     __logger = current_app.logger
     obj = None
     try:
+        __logger.debug(f"Connect using {current_app.config['DB_DSN']}")
         payload = request.get_json()
-        if payload.get('user') == 'user' and payload.get('password') == 'password':
-            __logger.debug('User authorized')
-            token_val = uuid.uuid4().hex
-            __save_session_to_cache(token_val, payload.get('user'))
-            session['token'] = token_val
-            obj = make_response({})
+        username = payload.get('user')
+        password = payload.get('password')
+
+        if(username is None or password is None):
+            __logger.info("Username or password not sent in request")
+            obj = make_response({'error': 'Missing data' }, 400)
         else:
-            __logger.warning('User rejected')
-            obj = make_response({'error': 'Invalid creds'}, 401)
+            stored_data = __retrieve_user_info(username)
+            __logger.debug(f'stored_data: {stored_data}')
+
+            if stored_data is not None:
+                if payload.get('user') == 'user' and payload.get('password') == 'password':
+                    __logger.debug('User authorized')
+                    token_val = uuid.uuid4().hex
+                    __save_session_to_cache(token_val, payload.get('user'))
+                    session['token'] = token_val
+                    obj = make_response({})
     except BadRequest:
         obj = make_response({'error': 'Failed to parse data'}, 400)
+
+    if obj is None:
+        __logger.warning('User rejected')
+        obj = make_response({'error': 'Invalid creds'}, 401)
 
     return obj
 

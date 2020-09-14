@@ -28,8 +28,8 @@ GET on login fail
     ${resp}     Get Request     API     ${PREFIX}/login
     Status Should Be    405     ${resp}
 
-Login failed
-    ${post_body}=   Create Dictionary   user=user   password=badpass
+Unregistered user
+    ${post_body}=   Create Dictionary   user=notpresent   password=wontmatter
     ${resp}=    Post Request    API     ${PREFIX}/login     json=${post_body}
     Status Should Be    401     ${resp}
     ${redis_conn}=  Connect To Redis    ${REDIS_HOST}   redis_port=${REDIS_PORT}

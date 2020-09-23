@@ -1,9 +1,8 @@
 *** Settings ***
 Documentation   Test k8s backend auth API
+Resource        ../shared.robot
 Library         RequestsLibrary
-Library         RedisLibrary
 Library         Collections
-Library         DatabaseLibrary
 Suite Setup     Reset user table
 Test Setup      Initialize Test
 
@@ -14,9 +13,7 @@ ${REDIS_PORT}   6379
 
 *** Test Cases ***
 Successful login
-    ${post_body}=   Create Dictionary   user=user   password=123456
-    ${resp}=    Post Request    API     ${PREFIX}/login     json=${post_body}
-    Status Should Be    200     ${resp}
+    Login To Backend
     ${redis_conn}=  Connect To Redis    ${REDIS_HOST}   redis_port=${REDIS_PORT}
     @{key_list}=    Get All Match Keys  ${redis_conn}   token:*
     ${data}=    Get From Redis  ${redis_conn}   ${key_list[0]}
@@ -37,17 +34,3 @@ Unregistered user
     ${redis_conn}=  Connect To Redis    ${REDIS_HOST}   redis_port=${REDIS_PORT}
     @{key_list}=    Get All Match Keys  ${redis_conn}   token:*
     Should Be Empty     ${key_list}
-
-*** Keywords ***
-Flush Redis Cache
-    ${redis_conn}=  Connect To Redis   ${REDIS_HOST}   redis_port=${REDIS_PORT}
-    Flush All   ${redis_conn}
-
-Initialize Test
-    Flush Redis Cache
-    Create Session  API     ${API_HOST}
-
-Reset user table
-    Connect To Database
-    Delete All Rows From Table      k8spractice.user
-    Execute Sql String  INSERT INTO k8spractice.user(name, password, iv, version) VALUES('user', '\\xe7a737823d17e307cb145b6cb64fc90bf132c80d63266330629cbd59dcd5a50f', '\\x6bb23c22a9c2bdb6484261decb3507584537bc1701a080c8e702f0d258ae7397', 1)

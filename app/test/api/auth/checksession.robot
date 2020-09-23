@@ -1,7 +1,8 @@
 *** Settings ***
 Documentation   Test k8s backend auth API
+Resource        ../shared.robot
 Library         RequestsLibrary
-Library         RedisLibrary
+Suite Setup     Reset user table
 Test Setup      Initialize Test
 
 *** Variables ***
@@ -11,9 +12,7 @@ ${REDIS_PORT}   6379
 
 *** Test Cases ***
 Active Session
-    ${post_body}=   create dictionary   user=user   password=password
-    ${resp}=    post request    api     ${prefix}/login     json=${post_body}
-    status should be    200     ${resp}
+    Login To Backend
     ${resp}=    Get Request     API     ${PREFIX}/checksession
     Status Should Be    200     ${resp}
 
@@ -25,19 +24,8 @@ No session after login failed
     Status Should Be    401     ${resp}
 
 Expired Session
-    ${post_body}=   create dictionary   user=user   password=password
-    ${resp}=    post request    api     ${prefix}/login     json=${post_body}
-    Status Should Be    200     ${resp}
+    Login To Backend
     Flush Redis Cache
     ${resp}=    Get Request     API     ${PREFIX}/checksession
     Log     ${resp}
     Status Should Be    401     ${resp}
-
-*** Keywords ***
-Flush Redis Cache
-    ${redis_conn}=  Connect To Redis   ${REDIS_HOST}   redis_port=${REDIS_PORT}
-    Flush All   ${redis_conn}
-
-Initialize Test
-    Flush Redis Cache
-    Create Session  API     ${API_HOST}

@@ -38,7 +38,7 @@ def __retrieve_user_info(username):
         raise ValueError(f"Got multiple entries for user {username} from the database")
 
     if cursor.rowcount == 0:
-        __logger.info("User {user} not registered")
+        __logger.info(f"User {username} not registered")
         return None
 
     data = cursor.fetchone()
@@ -101,7 +101,9 @@ def __load_session_data():
             if stored_data is not None:
                 hasher = __build_hasher(stored_data['version'])
                 hashed_password = __calc_password_hash(stored_data['iv'], password.encode(), hasher);
-                if stored_data['password'] == __calc_password_hash(stored_data['iv'], password.encode(), stored_data['version']):
+                __logger.debug(f"Hashed password: {hashed_password.hex()}")
+                __logger.debug(f"Stored password: {stored_data['password'].hex()}")
+                if stored_data['password'] == hashed_password:
                     __logger.debug('User authorized')
                     token_val = uuid.uuid4().hex
                     __save_session_to_cache(token_val, payload.get('user'))

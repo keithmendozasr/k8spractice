@@ -27,11 +27,14 @@ def __get_session_from_cache(token):
     __logger.debug(f'Token value: {user}')
     return user
 
+def __db_connect():
+    conn = psycopg2.connect(current_app.config['DB_DSN'])
+    return (conn, conn.cursor())
+
 def __retrieve_user_info(username):
     __logger = current_app.logger
 
-    conn = psycopg2.connect(current_app.config['DB_DSN'])
-    cursor = conn.cursor()
+    (conn, cursor) = __db_connect()
     cursor.execute('SELECT password, iv, version FROM k8spractice.user WHERE name=%s', (username,))
 
     if cursor.rowcount > 1:

@@ -8,6 +8,7 @@ from werkzeug.exceptions import BadRequest
 import redis
 import psycopg2
 import hashlib
+import os
 
 bp = Blueprint('auth', __name__)
 
@@ -133,3 +134,42 @@ def __check_session_active():
     __logger = current_app.logger
     __logger.debug('Inside checksession')
     return {}
+
+@bp.route('/usermgt', methods=['PUT'])
+def __create_user():
+    __logger = current_app.logger
+    payload = request.get_json()
+    username = payload.get('user')
+    password = payload.get('password')
+
+    if(username is None or password is None):
+        __logger.info("Username or password not sent in request")
+        return make_response({ 'error': 'Missing data' }, 400)
+
+    retVal = {}
+    hasher = __build_hasher()
+    iv = os.urandom(hasher.digest_size)
+    hash_pass = __calc_password_hash(iv, password.encode(), hasher)
+    __logger.debug(f"Value of iv: {iv.hex()}")
+    __logger.debug(f"Hashed password: {hash_pass.hex()}")
+
+    try:
+        (conn, cursor) = __db_connect()
+        cursor.execute("""
+            INSERT INTO k8spractice.user(name, password, iv, version)
+            VALUES(%s, %s, %s, 1)
+            """,
+            (username, hash_pass, iv)
+        )
+        row_count = cursor.rowcount
+        __logger.debug(f"INSERT row count: {row_count}")
+        if(row_count != 1):
+            raise RuntimeError(f"Failed to add new user to the DB. Cause: {cur.statusmessage}")
+
+        __logger.info(f"New user {username} created")
+        conn.commit()
+    except psycopg2.errors.UniqueViolation:
+        __logger.info(f"Username {username} already exists in the system")
+        retVal = make_response({'error': 'Username already exists in the system'}, 400)
+
+    return retVal

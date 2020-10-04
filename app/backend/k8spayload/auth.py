@@ -63,6 +63,20 @@ def __build_hasher(version=1):
 
     raise ValueError(f"Unexpected password hash version {version}")
 
+def __authenticate_user(username, password):
+    __logger = current_app.logger
+    
+    stored_data = __retrieve_user_info(username)
+    
+    if stored_data is not None:
+        hasher = __build_hasher(stored_data['version'])
+        hashed_password = __calc_password_hash(stored_data['iv'], password.encode(), hasher)
+        __logger.debug(f"Hashed password: {hashed_password.hex()}")
+        __logger.debug(f"Stored password: {stored_data['password'].hex()}")
+        return stored_data['password'] == hashed_password
+        
+    return False
+
 def session_required(view):
     @functools.wraps(view)
     def wrapped_view(**kwargs):
@@ -95,24 +109,11 @@ def __load_session_data():
         payload = request.get_json()
         username = payload.get('user')
         password = payload.get('password')
-
-        if(username is None or password is None):
-            __logger.info("Username or password not sent in request")
-            obj = make_response({'error': 'Missing data' }, 400)
-        else:
-            stored_data = __retrieve_user_info(username)
-
-            if stored_data is not None:
-                hasher = __build_hasher(stored_data['version'])
-                hashed_password = __calc_password_hash(stored_data['iv'], password.encode(), hasher);
-                __logger.debug(f"Hashed password: {hashed_password.hex()}")
-                __logger.debug(f"Stored password: {stored_data['password'].hex()}")
-                if stored_data['password'] == hashed_password:
-                    __logger.debug('User authorized')
-                    token_val = uuid.uuid4().hex
-                    __save_session_to_cache(token_val, payload.get('user'))
-                    session['token'] = token_val
-                    obj = make_response({})
+        if __authenticate_user(username, password):
+            token_val = uuid.uuid4().hex
+            __save_session_to_cache(token_val, payload.get('user'))
+            session['token'] = token_val
+            obj = make_response({})
     except BadRequest:
         obj = make_response({'error': 'Failed to parse data'}, 400)
 

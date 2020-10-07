@@ -12,6 +12,8 @@ import os
 
 bp = Blueprint('auth', __name__)
 
+__password_hash_version = 1
+
 def __connect_to_cache():
     return redis.Redis(host='localhost', port=6379, ssl_cert_reqs=None)
 
@@ -25,6 +27,8 @@ def __get_session_from_cache(token):
     __logger = current_app.logger
     r = __connect_to_cache()
     user = r.get(f'token:{token}')
+    if user:
+        user = user.decode('UTF-8')
     __logger.debug(f'Token value: {user}')
     return user
 
@@ -136,7 +140,7 @@ def __check_session_active():
     __logger.debug('Inside checksession')
     return {}
 
-@bp.route('/usermgt', methods=['PUT'])
+@bp.route('/usermgnt', methods=['PUT'])
 def __create_user():
     __logger = current_app.logger
     payload = request.get_json()
@@ -158,9 +162,9 @@ def __create_user():
         (conn, cursor) = __db_connect()
         cursor.execute("""
             INSERT INTO k8spractice.user(name, password, iv, version)
-            VALUES(%s, %s, %s, 1)
+            VALUES(%s, %s, %s, %s)
             """,
-            (username, hash_pass, iv)
+            (username, hash_pass, iv, __password_hash_version)
         )
         row_count = cursor.rowcount
         __logger.debug(f"INSERT row count: {row_count}")
@@ -172,5 +176,44 @@ def __create_user():
     except psycopg2.errors.UniqueViolation:
         __logger.info(f"Username {username} already exists in the system")
         retVal = make_response({'error': 'Username already exists in the system'}, 400)
+
+    return retVal
+
+@bp.route('/usermgnt', methods=['POST'])
+@session_required
+def __update_user_password():
+    __logger = current_app.logger
+    payload = request.get_json()
+    currpass = payload.get('curpass')
+    newpass = payload.get('newpass')
+
+    if(currpass is None or newpass is None):
+        __logger.info("Current or new password not provided")
+        return make_response({ 'error': 'Missing data' }, 400)
+
+    retVal = {}
+    username = g.user
+    if __authenticate_user(username, currpass):
+        __logger.debug("User authenticated for update")
+        hasher = __build_hasher()
+        iv = os.urandom(hasher.digest_size)
+        hash_pass = __calc_password_hash(iv, newpass.encode(), hasher)
+        
+        (conn, cursor) = __db_connect()
+        cursor.execute("""
+            UPDATE k8spractice.user SET iv = %s, password = %s, version = %s
+            WHERE name = %s
+            """,
+            (iv, hash_pass, __password_hash_version, username))
+        row_count = cursor.rowcount
+        __logger.debug(f"UPDATE row count: {row_count}")
+        if(row_count != 1):
+            raise RuntimeError(f"Failed to save updated credentials ot the DB. Cause: {curr.statusmessage}")
+
+        __logger.info(f"Password for user {username} updated")
+        conn.commit()
+    else:
+        __logger.info(f"Not updating password for user {username}. Invalid password provided")
+        retVal = make_response({'error': 'Invalid password'}, 405)
 
     return retVal

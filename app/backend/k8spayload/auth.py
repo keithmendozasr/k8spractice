@@ -69,16 +69,16 @@ def __build_hasher(version=1):
 
 def __authenticate_user(username, password):
     __logger = current_app.logger
-    
+
     stored_data = __retrieve_user_info(username)
-    
+
     if stored_data is not None:
         hasher = __build_hasher(stored_data['version'])
         hashed_password = __calc_password_hash(stored_data['iv'], password.encode(), hasher)
         __logger.debug(f"Hashed password: {hashed_password.hex()}")
         __logger.debug(f"Stored password: {stored_data['password'].hex()}")
         return stored_data['password'] == hashed_password
-        
+
     return False
 
 def session_required(view):
@@ -168,7 +168,7 @@ def __create_user():
         )
         row_count = cursor.rowcount
         __logger.debug(f"INSERT row count: {row_count}")
-        if(row_count != 1):
+        if row_count != 1:
             raise RuntimeError(f"Failed to add new user to the DB. Cause: {cur.statusmessage}")
 
         __logger.info(f"New user {username} created")
@@ -198,7 +198,7 @@ def __update_user_password():
         hasher = __build_hasher()
         iv = os.urandom(hasher.digest_size)
         hash_pass = __calc_password_hash(iv, newpass.encode(), hasher)
-        
+
         (conn, cursor) = __db_connect()
         cursor.execute("""
             UPDATE k8spractice.user SET iv = %s, password = %s, version = %s
@@ -208,7 +208,8 @@ def __update_user_password():
         row_count = cursor.rowcount
         __logger.debug(f"UPDATE row count: {row_count}")
         if(row_count != 1):
-            raise RuntimeError(f"Failed to save updated credentials ot the DB. Cause: {curr.statusmessage}")
+            raise RuntimeError(
+                f"Failed to save updated credentials ot the DB. Cause: {curr.statusmessage}")
 
         __logger.info(f"Password for user {username} updated")
         conn.commit()

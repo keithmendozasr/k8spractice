@@ -11,6 +11,7 @@ import {
 import { Home } from './home';
 import { Load } from './load';
 import { NoMenu } from './nomenu';
+import { LoginForm } from './loginform.js';
 
 class App extends React.Component {
     constructor(props) {
@@ -27,10 +28,14 @@ class App extends React.Component {
             .catch(error => console.error('Error occured: ' + error));
     }
 
-    onProcessComplete() {
+    loginComplete() {
         this.setState({
             isAuthenticated: true
         });
+    }
+
+    registerComplete() {
+        window.location.href="/";
     }
 
     render() {
@@ -41,7 +46,7 @@ class App extends React.Component {
                 <div className="collapse navbar-collapse" id="navbarSupportedContent">
                     <ul className="navbar-nav">
                         <li className="nav-item" key="menu-load">
-                            <Link id="nav-load" to="/load" className="nav-link" href="/load">Load</Link>
+                            <Link id="nav-load" to="/load" className="nav-link">Load</Link>
                         </li>
                         <li className="nav-item" key="menu-nomenu">
                             <Link id="nav-nomenu" to="/nomenu" className="nav-link">No Menu</Link>
@@ -65,8 +70,12 @@ class App extends React.Component {
                     <Route exact path="/nomenu">
                         { this.state.isAuthenticated ? <NoMenu /> : <Redirect to="/" /> }
                     </Route>
+                    <Route exact path="/register">
+                        <h1>Register</h1>
+                        <LoginForm onProcessComplete={this.registerComplete.bind(this)} targetPath="/api/auth/usermgnt" requestMethod="PUT" />
+                    </Route>
                     <Route>
-                        <Home onProcessComplete={this.onProcessComplete.bind(this)} isAuthenticated={this.state.isAuthenticated} />
+                        <Home onProcessComplete={this.loginComplete.bind(this)} isAuthenticated={this.state.isAuthenticated} />
                     </Route>
                 </Switch>
             </Router>);

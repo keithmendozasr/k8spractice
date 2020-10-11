@@ -27,9 +27,9 @@ class App extends React.Component {
             .catch(error => console.error('Error occured: ' + error));
     }
 
-    updateAuthenticateState(value) {
+    onProcessComplete() {
         this.setState({
-            isAuthenticated: value
+            isAuthenticated: true
         });
     }
 
@@ -66,7 +66,7 @@ class App extends React.Component {
                         { this.state.isAuthenticated ? <NoMenu /> : <Redirect to="/" /> }
                     </Route>
                     <Route>
-                        <Home updateAuthenticateState={this.updateAuthenticateState.bind(this)} isAuthenticated={this.state.isAuthenticated} />
+                        <Home onProcessComplete={this.onProcessComplete.bind(this)} isAuthenticated={this.state.isAuthenticated} />
                     </Route>
                 </Switch>
             </Router>);

@@ -45,20 +45,17 @@ export class LoginForm extends React.Component {
             body: JSON.stringify(this.state.creds)
         })
         .then(response => {
-            if(response.ok){
-                this.setState({ isAuthenticated: true });
-                this.props.updateAuthenticateState(this.state.isAuthenticated);
-            } else {
+            if(response.ok)
+                this.props.onProcessComplete();
+            else {
                 console.log('Authentication failed');
                 this.setState({ 
-                    isAuthenticated: false,
                     message: 'Authenticate failed'
                 });
             }
             return response.json();
         })
         .catch(error => this.setState({
-            isAuthenticated: false,
             creds: { user: '', password: '' }
         }));
 

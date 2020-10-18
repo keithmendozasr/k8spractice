@@ -16,9 +16,7 @@ import { LoginForm } from './loginform.js';
 class App extends React.Component {
     constructor(props) {
         super(props);
-        this.state = {
-            isAuthenticated: false
-        };
+        this.state = {};
     }
 
     componentDidMount() {
@@ -39,6 +37,11 @@ class App extends React.Component {
     }
 
     render() {
+        if(! ('isAuthenticated' in this.state)) {
+            console.log('isAuthenticated not set');
+            return ([]);
+        }
+
         var menu = [];
 
         if(this.state.isAuthenticated)

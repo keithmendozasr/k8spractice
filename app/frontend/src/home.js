@@ -4,10 +4,6 @@ import { Link } from 'react-router-dom';
 import { LoginForm } from './loginform';
 
 export class Home extends React.Component {
-    constructor(props) {
-        super(props);
-    }
-
     render(){
         var retVal = [];
         if(this.props.isAuthenticated === false) {

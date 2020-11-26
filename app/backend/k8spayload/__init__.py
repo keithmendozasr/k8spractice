@@ -26,7 +26,7 @@ dictConfig({
         }
     },
     'root': {
-        'level': 'DEBUG',
+        'level': 'INFO',
         'handlers': ['console']
     }
 })

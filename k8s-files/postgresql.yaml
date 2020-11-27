@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: psqlvol
+spec:
+  storageClassName: psqldata
+  azureDisk:
+    kind: Managed
+    diskURI: <AZ Disk instance ID>
+    diskName: <AZ disk name>
+  accessModes:
+  - ReadWriteOnce
+  capacity:
+    storage: 2Gi
+  persistentVolumeReclaimPolicy: Retain
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: psqlpvc
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: psqldata
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: psqlserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      role: dbserver
+  template:
+    metadata:
+      labels:
+        role: dbserver
+    spec:
+      containers:
+      - name: psqlserver
+        image: postgres:12-alpine
+        imagePullPolicy: IfNotPresent
+        envFrom:
+        - secretRef:
+            name: <SECRET NAME HERE>
+        env:
+        - name: PGDATA
+          value: "/mnt/permstore/pgdata"
+        ports:
+        - containerPort: 5432
+          protocol: TCP
+          name: psqlport
+        volumeMounts:
+        - name: psqldata
+          mountPath: /mnt/permstore
+      volumes:
+      - name: psqldata
+        persistentVolumeClaim:
+          claimName: psqlpvc
+          readOnly: false
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: dbserver
+spec:
+  selector:
+    role: dbserver
+  ports:
+  - port: 5432
+    protocol: TCP

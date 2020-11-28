@@ -15,3 +15,12 @@ spec:
             name: backend
             port:
               name: backendport
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend
+            port:
+                name: frontendport

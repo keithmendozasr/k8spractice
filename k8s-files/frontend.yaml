@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: k8sfrontend
+        image: ghcr.io/keithmendozasr/k8spractice/frontend:release1
+        imagePullPolicy: Always
+        ports:
+        - name: "frontendport"
+          containerPort: 80
+          protocol: TCP
+      imagePullSecrets:
+        - name: ghcr
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+spec:
+  selector:
+    app: frontend
+  ports:
+  - name: "frontendport"
+    targetPort: "frontendport"
+    port: 80

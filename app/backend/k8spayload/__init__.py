@@ -34,6 +34,8 @@ dictConfig({
 app = Flask(__name__, instance_relative_config=True)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 app.config['DB_DSN'] = os.environ.get('DB_DSN')
+app.config['REDIS_HOST'] = os.environ.get('REDIS_HOST')
+app.config['REDIS_PORT'] = os.environ.get('REDIS_PORT')
 app.register_blueprint(front.bp, url_prefix='/api')
 app.register_blueprint(auth.bp, url_prefix='/api/auth')
 app.logger.info('App ready')

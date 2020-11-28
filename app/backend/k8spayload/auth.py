@@ -15,7 +15,7 @@ bp = Blueprint('auth', __name__)
 __password_hash_version = 1
 
 def __connect_to_cache():
-    return redis.Redis(host='localhost', port=6379, ssl_cert_reqs=None)
+    return redis.Redis(host=current_app.config['REDIS_HOST'], port=current_app.config['REDIS_PORT'], ssl_cert_reqs=None)
 
 def __save_session_to_cache(token, value):
     """ Save session info to Redis cache wtih 10 minute lifetime"""

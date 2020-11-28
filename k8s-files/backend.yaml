@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: k8sbackend
+        image: ghcr.io/keithmendozasr/k8spractice/backend:release1
+        imagePullPolicy: IfNotPresent
+        envFrom:
+        - secretRef:
+            name: backendsecretkey
+            optional: false
+        - secretRef:
+            name: backenddb
+            optional: false
+        env:
+        - name: REDIS_HOST
+          value: redis
+        - name: REDIS_PORT
+          value: "6379"
+        ports:
+        - name: "backendport"
+          containerPort: 5000
+          protocol: TCP
+      imagePullSecrets:
+        - name: ghcr
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  selector:
+    app: backend
+  ports:
+  - name: "backendport"
+    targetPort: "backendport"
+    port: 5000

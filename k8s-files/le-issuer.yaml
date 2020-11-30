@@ -1,0 +1,15 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: le-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: <YOUR EMAIL HERE>
+    privateKeySecretRef:
+      name: <PRIVATE KEY SECRET NAME HERE>
+    solvers:
+      - selector: {}
+        http01:
+          ingress:
+            class: traefik

@@ -3,9 +3,11 @@ kind: Ingress
 metadata:
   name: practice-ingress
   annotations:
-    kubernetes.io/ingress.class: traefik
+    cert-manager.io/cluster-issuer: le-staging
+    kubernetes.io/tls-acme: "true"
 spec:
   rules:
+  - host: k8spractice.homepluspower.info
   - http:
       paths:
       - path: /api
@@ -15,8 +17,6 @@ spec:
             name: backend
             port:
               name: backendport
-  - http:
-      paths:
       - path: /
         pathType: Prefix
         backend:
@@ -24,3 +24,7 @@ spec:
             name: frontend
             port:
                 name: frontendport
+  tls:
+  - hosts:
+    - k8spractice.homepluspower.info
+    secretName: <TLS SECRET NAME>

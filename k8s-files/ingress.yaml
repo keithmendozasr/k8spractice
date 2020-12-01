@@ -6,9 +6,15 @@ metadata:
     cert-manager.io/cluster-issuer: le-staging
     kubernetes.io/tls-acme: "true"
 spec:
+  ingressClassName: nginx
+  defaultBackend:
+    service:
+      name: frontend
+      port:
+        name: frontendport
   rules:
   - host: k8spractice.homepluspower.info
-  - http:
+    http:
       paths:
       - path: /api
         pathType: Prefix
@@ -17,13 +23,6 @@ spec:
             name: backend
             port:
               name: backendport
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: frontend
-            port:
-                name: frontendport
   tls:
   - hosts:
     - k8spractice.homepluspower.info

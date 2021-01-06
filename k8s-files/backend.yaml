@@ -32,8 +32,7 @@ spec:
         - name: "backendport"
           containerPort: 5000
           protocol: TCP
-      imagePullSecrets:
-        - name: ghcr
+
 ---
 
 apiVersion: v1

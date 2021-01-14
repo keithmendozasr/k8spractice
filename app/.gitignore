@@ -19,6 +19,7 @@ yarn-error.log*
 # backend ignores
 venv
 __pycache__
+build
 
 # misc
 .DS_Store

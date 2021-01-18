@@ -17,6 +17,15 @@ ExternalProject_Add(log4cplus_build
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DBUILD_SHARED_LIBS:BOOL=OFF -DLOG4CPLUS_BUILD_TESTING:BOOL=OFF -DLOG4CPLUS_BUILD_LOGGINGSERVER:BOOL=OFF -DWITH_UNIT_TESTS:BOOL=OFF
 )
 
+ExternalProject_Add(microhttpd_build
+    URL https://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-0.9.71.tar.gz
+    URL_HASH SHA256=e8f445e85faf727b89e9f9590daea4473ae00ead38b237cf1eda55172b89b182
+    PREFIX ${EXTERNLIBS_DIR}
+    CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=${CMAKE_BINARY_DIR}/externlibs --enable-shared=no --enable-https=no
+    BUILD_COMMAND make
+    INSTALL_COMMAND make install
+)
+
 include_directories(${EXTERNLIBS_DIR}/include)
 link_directories(${EXTERNLIBS_DIR}/lib)
 

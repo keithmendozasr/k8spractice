@@ -1,7 +1,9 @@
 add_executable(k8spracticebackend main.cpp)
-add_dependencies(k8spracticebackend log4cplus_build)
+add_dependencies(k8spracticebackend log4cplus_build libhttpserver_build)
 
 target_link_libraries(k8spracticebackend
     log4cplusS
     pthread
+    httpserver
+    microhttpd
 )

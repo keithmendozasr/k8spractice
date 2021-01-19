@@ -26,7 +26,24 @@ ExternalProject_Add(microhttpd_build
     INSTALL_COMMAND make install
 )
 
-include_directories(${EXTERNLIBS_DIR}/include)
-link_directories(${EXTERNLIBS_DIR}/lib)
+ExternalProject_Add(libhttpserver_build
+	URL https://github.com/etr/libhttpserver/archive/0.18.2.tar.gz
+    URL_HASH SHA256=1dfe548ac2add77fcb6c05bd00222c55650ffd02b209f4e3f133a6e3eb29c89d
+    PREFIX ${EXTERNLIBS_DIR}
+    CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=${EXTERNLIBS_DIR} --enable-shared=no --disable-examples --disable-doxygen-doc "CPPFLAGS=${CPPFLAGS} -I${EXTERNLIBS_DIR}/include" "LDFLAGS=${LDFLAGS} -L${EXTERNLIBS_DIR}/lib -pthread"
+    BUILD_COMMAND make
+    INSTALL_COMMAND make install
+)
+
+ExternalProject_Add_Step(libhttpserver_build run_bootstrap
+    COMMAND ./bootstrap
+    WORKING_DIRECTORY <SOURCE_DIR>
+    DEPENDEES patch
+    DEPENDERS configure
+)
+add_dependencies(libhttpserver_build microhttpd_build)
+
+include_directories(${CMAKE_BINARY_DIR}/externlibs/include)
+link_directories(${CMAKE_BINARY_DIR}/externlibs/lib)
 
 add_subdirectory(src)

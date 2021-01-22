@@ -10,6 +10,7 @@
 #include <httpserver.hpp>
 
 #include "baseresponse.h"
+#include "auth.h"
 
 using namespace std;
 using namespace log4cplus;
@@ -57,6 +58,10 @@ int main()
 
     BaseResponse handler;
     ws.register_resource("/api/load", &handler);
+
+    Auth authHandler;
+    ws.register_resource("/api/auth/login", &authHandler);
+
     ws.start(true);
 
 

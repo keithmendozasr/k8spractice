@@ -9,9 +9,12 @@
 
 #include <httpserver.hpp>
 
+#include "baseresponse.h"
+
 using namespace std;
 using namespace log4cplus;
 using namespace httpserver;
+using namespace k8sbackend;
 
 void configureLogger()
 {
@@ -22,21 +25,24 @@ void configureLogger()
     appender->setLayout(unique_ptr<PatternLayout>(new PatternLayout("%d{%Y-%m-%dT%H%M%S.%q} %5p [%x-%c]: %m%n")));
     logger.addAppender(appender);
     
-    logger.setLogLevel(INFO_LOG_LEVEL);
+    logger.setLogLevel(DEBUG_LOG_LEVEL);
 }
 
-class StartingServer : public http_resource {
-private:
-    Logger logger = Logger::getInstance("StartingServer");
+const shared_ptr<http_response> internalErrorHandler(const http_request &req)
+{
+    auto logger = Logger::getRoot();
+    NDCContextCreator logContext(req.get_requestor() + ":" + to_string(req.get_requestor_port()));
+    LOG4CPLUS_ERROR(logger, string("Error encountered handling ") + req.get_path());
+    return make_shared<string_response>("", 500);
+}
 
-public:
-    const shared_ptr<http_response> render(const http_request &request)
-    {
-        NDCContextCreator ndc(request.get_requestor() + ":" + to_string(request.get_requestor_port()));
-        LOG4CPLUS_INFO(logger, "Handling request");
-        return make_shared<string_response>("Test");
-    };
-};
+const shared_ptr<http_response> notFoundHandler(const http_request &req)
+{
+    auto logger = Logger::getRoot();
+    NDCContextCreator logContext(req.get_requestor() + ":" + to_string(req.get_requestor_port()));
+    LOG4CPLUS_ERROR(logger, string("No handler for ") + req.get_path());
+    return make_shared<string_response>("", 404);
+}
 
 int main()
 {
@@ -45,9 +51,12 @@ int main()
     auto logger = Logger::getRoot();
     LOG4CPLUS_INFO(logger, "Backend started");
 
-    webserver ws = create_webserver(5000);
-    StartingServer server;
-    ws.register_resource("/", &server);
+    webserver ws = create_webserver(5000)
+        .internal_error_resource(internalErrorHandler)
+        .not_found_resource(notFoundHandler);
+
+    BaseResponse handler;
+    ws.register_resource("/api/load", &handler);
     ws.start(true);
 
 

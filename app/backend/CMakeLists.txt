@@ -29,6 +29,7 @@ ExternalProject_Add(microhttpd_build
 ExternalProject_Add(libhttpserver_build
 	URL https://github.com/etr/libhttpserver/archive/0.18.2.tar.gz
     URL_HASH SHA256=1dfe548ac2add77fcb6c05bd00222c55650ffd02b209f4e3f133a6e3eb29c89d
+    DOWNLOAD_NAME libhttpserver.tar.gz
     PREFIX ${EXTERNLIBS_DIR}
     CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=${EXTERNLIBS_DIR} --enable-shared=no --disable-examples --disable-doxygen-doc "CPPFLAGS=${CPPFLAGS} -I${EXTERNLIBS_DIR}/include" "LDFLAGS=${LDFLAGS} -L${EXTERNLIBS_DIR}/lib -pthread"
     BUILD_COMMAND make
@@ -42,6 +43,14 @@ ExternalProject_Add_Step(libhttpserver_build run_bootstrap
     DEPENDERS configure
 )
 add_dependencies(libhttpserver_build microhttpd_build)
+
+ExternalProject_add(jsoncpp_build
+    URL https://github.com/open-source-parsers/jsoncpp/archive/1.9.4.tar.gz
+    URL_HASH SHA256=e34a628a8142643b976c7233ef381457efad79468c67cb1ae0b83a33d7493999
+    DOWNLOAD_NAME jsoncpp.tar.gz
+    PREFIX ${EXTERNLIBS_DIR}
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DJSONCPP_WITH_TESTS:BOOL=OFF -DJSONCPP_WITH_POST_BUILD_UNITTEST:BOOL=OFF -JSONCPP_WITH_PKGCONFIG_SUPPORT:BOOL=OFF -DJSONCPP_WITH_CMAKE_PACKAGE:BOOL=OFF -DBUILD_SHARED_LIBS:BOOL=OFF -DBUILD_OBJECT_LIBS:BOOL=OFF
+)
 
 include_directories(${CMAKE_BINARY_DIR}/externlibs/include)
 link_directories(${CMAKE_BINARY_DIR}/externlibs/lib)

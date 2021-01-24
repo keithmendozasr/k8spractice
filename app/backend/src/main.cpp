@@ -1,5 +1,6 @@
 #include <iostream>
 #include <memory>
+#include <iomanip>
 
 #include <log4cplus/logger.h>
 #include <log4cplus/loggingmacros.h>
@@ -26,7 +27,7 @@ void configureLogger()
     appender->setLayout(unique_ptr<PatternLayout>(new PatternLayout("%d{%Y-%m-%dT%H%M%S.%q} %5p [%x-%c]: %m%n")));
     logger.addAppender(appender);
     
-    logger.setLogLevel(DEBUG_LOG_LEVEL);
+    logger.setLogLevel(TRACE_LOG_LEVEL);
 }
 
 const shared_ptr<http_response> internalErrorHandler(const http_request &req)
@@ -63,7 +64,6 @@ int main()
     ws.register_resource("/api/auth/login", &authHandler);
 
     ws.start(true);
-
 
     return EXIT_SUCCESS;
 }

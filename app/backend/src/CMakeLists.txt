@@ -8,4 +8,5 @@ target_link_libraries(k8spracticebackend
     microhttpd
     gnutls
     jsoncpp
+    crypto
 )

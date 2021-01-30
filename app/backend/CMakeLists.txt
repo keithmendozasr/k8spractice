@@ -44,7 +44,7 @@ ExternalProject_Add_Step(libhttpserver_build run_bootstrap
 )
 add_dependencies(libhttpserver_build microhttpd_build)
 
-ExternalProject_add(jsoncpp_build
+ExternalProject_Add(jsoncpp_build
     URL https://github.com/open-source-parsers/jsoncpp/archive/1.9.4.tar.gz
     URL_HASH SHA256=e34a628a8142643b976c7233ef381457efad79468c67cb1ae0b83a33d7493999
     DOWNLOAD_NAME jsoncpp.tar.gz
@@ -53,6 +53,14 @@ ExternalProject_add(jsoncpp_build
 )
 
 find_library(CRYPTO crypto REQUIRED)
+
+ExternalProject_Add(pqxx_build
+    URL https://github.com/jtv/libpqxx/archive/7.3.1.tar.gz
+    URL_HASH SHA256=c794e7e5c4f1ef078463ecafe747a6508a0272d83b32a8cdcfb84bb37218a78b
+    DOWNLOAD_NAME pqxx.tar.gz
+    PREFIX ${EXTERNLIBS_DIR}
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DSKIP_BUILD_TEST:BOOL=OFF -DBUILD_SHARED_LIBS:BOOL=OFF -DINSTALL_TEST:BOOL=OFF
+)
 
 include_directories(${CMAKE_BINARY_DIR}/externlibs/include)
 link_directories(${CMAKE_BINARY_DIR}/externlibs/lib)

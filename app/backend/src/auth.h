@@ -31,7 +31,12 @@ namespace k8sbackend
         typedef std::unique_ptr<EVP_MD_CTX, MdCtxDeleter> HashCtx;
         HashCtx buildHasher(const unsigned short version = 1);
 
-        std::tuple<std::unique_ptr<unsigned char[]>, unsigned int> calcPasswordHash(const std::string &iv, const std::string &cleartext, HashCtx && ctx);
+        typedef std::tuple<std::basic_string<std::byte>, std::basic_string<std::byte>, unsigned short> UserCredData;
+        typedef std::optional<UserCredData> UserCredInfo;
+        UserCredInfo getUserCredInfo(const std::string &username);
+
+        std::basic_string<std::byte> calcPasswordHash(const std::basic_string<std::byte> &iv,
+            const std::string &cleartext, HashCtx && ctx);
         const std::shared_ptr<httpserver::http_response> renderLogin(const httpserver::http_request &request);
 
     public:

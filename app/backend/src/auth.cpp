@@ -4,10 +4,19 @@
 #include <cstring>
 #include <iomanip>
 #include <cstring>
+#include <utility>
+#include <string>
+#include <cstddef>
+#include <tuple>
+#include <algorithm>
 
 #include "log4cplus/loggingmacros.h"
 #include "log4cplus/ndc.h"
 #include "json/reader.h"
+#include "pqxx/connection"
+#include "pqxx/transaction"
+#include "pqxx/result"
+#include "pqxx/binarystring"
 
 #include "auth.h"
 
@@ -15,6 +24,7 @@ using namespace std;
 using namespace httpserver;
 using namespace log4cplus;
 using namespace Json;
+using namespace pqxx;
 
 namespace k8sbackend
 {
@@ -44,17 +54,45 @@ namespace k8sbackend
         return move(retVal);
     }
 
-    tuple<unique_ptr<unsigned char[]>, unsigned int> Auth::calcPasswordHash(const string &iv, const string &cleartext, HashCtx && ctx)
+    Auth::UserCredInfo Auth::getUserCredInfo(const string &username)
+    {
+        connection dbConn;
+        LOG4CPLUS_DEBUG(logger, string("Connected to ") + dbConn.dbname());
+        dbConn.prepare("getcreds", "SELECT iv, password, version FROM k8spractice.user WHERE name = $1");
+
+        work tx{dbConn};
+        auto dbResult{tx.exec_prepared("getcreds", username)};
+        auto rowCount = size(dbResult);
+
+        if(logger.isEnabledFor(TRACE_LOG_LEVEL))
+        {
+            ostringstream logMsg;
+            logMsg << "Number of user rows: " << rowCount;
+            LOG4CPLUS_TRACE(logger, logMsg.str());
+        }
+
+        if(size(dbResult) == 0)
+        {
+            LOG4CPLUS_TRACE(logger, "User not found in database");
+            return {};
+        }
+
+        LOG4CPLUS_TRACE(logger, "User found in database");
+        auto row = dbResult[0];
+        return make_optional<UserCredData>(row[0].as<basic_string<byte>>(), row[1].as<basic_string<byte>>(), row[2].as<unsigned short>());
+    }
+
+    basic_string<byte> Auth::calcPasswordHash(const basic_string<byte> &iv, const string &cleartext, HashCtx && ctx)
     {
         auto ctxPtr = ctx.get();
-        EVP_DigestUpdate(ctxPtr, &(iv.c_str())[0], iv.size());
-        EVP_DigestUpdate(ctxPtr, &(cleartext.c_str())[0], cleartext.size());
+        EVP_DigestUpdate(ctxPtr, iv.data(), iv.size());
+        EVP_DigestUpdate(ctxPtr, cleartext.c_str(), cleartext.size());
 
-        auto outBuf = make_unique<unsigned char[]>(EVP_MAX_MD_SIZE);
+        unsigned char outBuf[EVP_MAX_MD_SIZE];
         unsigned int outSize;
-        EVP_DigestFinal_ex(ctxPtr, outBuf.get(), &outSize);
+        EVP_DigestFinal_ex(ctxPtr, outBuf, &outSize);
 
-        return make_tuple(std::move(outBuf), outSize);
+        return basic_string<byte>((byte*)outBuf, outSize);
     }
 
     const shared_ptr<http_response> Auth::renderLogin(const http_request &request)
@@ -73,37 +111,48 @@ namespace k8sbackend
             }
 
             auto userVal = user.asString();
-            auto passwordVal = password.asString();
+            LOG4CPLUS_DEBUG(logger, "username: " << userVal);
+            auto credInfo = getUserCredInfo(userVal);
 
-            LOG4CPLUS_DEBUG(logger, "username: " + userVal);
-
-            auto hasher = buildHasher();
-
-            //TODO: Properly populate the IV
-            auto [credHash, hashSize] = calcPasswordHash("", passwordVal, std::move(hasher));
-            if(logger.isEnabledFor(TRACE_LOG_LEVEL))
+            if(credInfo)
             {
-                ostringstream hashStr;
-                for(auto i=0; i<hashSize; i++)
-                    hashStr << setfill('0') << setw(2) << hex << (int)credHash[i];
-                LOG4CPLUS_TRACE(logger, "Value of hash");
-                LOG4CPLUS_TRACE(logger, hashStr.str());
-            }
+                auto passwordVal = password.asString();
+                basic_string<byte> iv, savedPassword;
+                unsigned short hashVersion;
+                tie(iv, savedPassword, hashVersion) = credInfo.value();
+                LOG4CPLUS_TRACE(logger, "Size of iv: " << iv.size());
+                if(logger.isEnabledFor(TRACE_LOG_LEVEL))
+                {
+                    ostringstream hashStr;
+                    for(auto i=0; i<savedPassword.size(); i++)
+                        hashStr << setfill('0') << setw(2) << hex << (int)savedPassword[i];
+                    LOG4CPLUS_TRACE(logger, "Value of savedPassword: " << hashStr.str());
+                }
 
-            unsigned char expectHash[] = {
-                0x9f, 0x86, 0xd0, 0x81, 0x88, 0x4c, 0x7d,
-                0x65, 0x9a, 0x2f, 0xea, 0xa0, 0xc5, 0x5a,
-                0xd0, 0x15, 0xa3, 0xbf, 0x4f, 0x1b, 0x2b,
-                0x0b, 0x82, 0x2c, 0xd1, 0x5d, 0x6c, 0x15,
-                0xb0, 0xf0, 0x0a, 0x08
-            };
+                auto hasher = buildHasher(hashVersion);
 
-            if(userVal == "user" && memcmp(&expectHash[0], &credHash[0], hashSize) == 0)
-            {
-                LOG4CPLUS_INFO(logger, string("User \"") + userVal + "\" authorized");
-                response = make_shared<string_response>("{data:\"hello\"}");
+                auto credHash = calcPasswordHash(iv, passwordVal, std::move(hasher));
+                if(logger.isEnabledFor(TRACE_LOG_LEVEL))
+                {
+                    ostringstream hashStr;
+                    for(auto i=0; i<credHash.size(); i++)
+                        hashStr << setfill('0') << setw(2) << hex << (int)credHash[i];
+                    LOG4CPLUS_TRACE(logger, "Value of hash");
+                    LOG4CPLUS_TRACE(logger, hashStr.str());
+                }
+
+                if(equal(credHash.begin(), credHash.end(), savedPassword.data()))
+                {
+                    LOG4CPLUS_INFO(logger, string("User \"") + userVal + "\" authorized");
+                    response = make_shared<string_response>("{data:\"hello\"}");
+                }
+                else
+                    LOG4CPLUS_DEBUG(logger, string("Failed to validate credential for \"") + userVal + "\"");
             }
             else
+                LOG4CPLUS_DEBUG(logger, string("User \"") + userVal + "\" not found");
+
+            if(!response)
             {
                 LOG4CPLUS_INFO(logger, string("User \"") + userVal + "\" not authorized");
                 response = make_shared<string_response>("", http::http_utils::http_unauthorized);
@@ -113,6 +162,11 @@ namespace k8sbackend
         {
             LOG4CPLUS_ERROR(logger, string("Failed to parse request body. Reason: ") + e.what());
             response = make_shared<string_response>("{\"error\":\"Parsing failed\"}", http::http_utils::http_bad_request);
+        }
+        catch(const pqxx::failure &e)
+        {
+            LOG4CPLUS_ERROR(logger, string("DB-related error encountered: ") + e.what());
+            response = make_shared<string_response>("{\"error\":\"Internal error\"}", http::http_utils::http_internal_server_error);
         }
 
         return response;

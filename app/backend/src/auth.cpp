@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <tuple>
 #include <algorithm>
+#include <random>
 
 #include "log4cplus/loggingmacros.h"
 #include "log4cplus/ndc.h"
@@ -28,6 +29,15 @@ using namespace pqxx;
 
 namespace k8sbackend
 {
+    const string Auth::binToHex(const std::basic_string<byte> &data)
+    {
+        ostringstream hashStr;
+        for(auto i=0; i<data.size(); i++)
+            hashStr << setfill('0') << setw(2) << hex << (int)data[i];
+
+        return hashStr.str();
+    }
+
     const Value Auth::parseBody(const string &body)
     {
         LOG4CPLUS_DEBUG(logger, string("BODY data to parse: ") + body);
@@ -121,24 +131,14 @@ namespace k8sbackend
                 unsigned short hashVersion;
                 tie(iv, savedPassword, hashVersion) = credInfo.value();
                 LOG4CPLUS_TRACE(logger, "Size of iv: " << iv.size());
-                if(logger.isEnabledFor(TRACE_LOG_LEVEL))
-                {
-                    ostringstream hashStr;
-                    for(auto i=0; i<savedPassword.size(); i++)
-                        hashStr << setfill('0') << setw(2) << hex << (int)savedPassword[i];
-                    LOG4CPLUS_TRACE(logger, "Value of savedPassword: " << hashStr.str());
-                }
 
                 auto hasher = buildHasher(hashVersion);
 
                 auto credHash = calcPasswordHash(iv, passwordVal, std::move(hasher));
                 if(logger.isEnabledFor(TRACE_LOG_LEVEL))
                 {
-                    ostringstream hashStr;
-                    for(auto i=0; i<credHash.size(); i++)
-                        hashStr << setfill('0') << setw(2) << hex << (int)credHash[i];
-                    LOG4CPLUS_TRACE(logger, "Value of hash");
-                    LOG4CPLUS_TRACE(logger, hashStr.str());
+                    LOG4CPLUS_TRACE(logger, "Value of savedPassword: " << binToHex(savedPassword));
+                    LOG4CPLUS_TRACE(logger, "Value of credHash: " << binToHex(credHash));
                 }
 
                 if(equal(credHash.begin(), credHash.end(), savedPassword.data()))

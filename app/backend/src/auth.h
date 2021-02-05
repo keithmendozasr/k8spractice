@@ -17,6 +17,8 @@ namespace k8sbackend
     private:
         log4cplus::Logger logger = log4cplus::Logger::getInstance("Auth");
         
+        const std::string binToHex(const std::basic_string<std::byte> &data);
+
         const Json::Value parseBody(const std::string &body);
 
         class MdCtxDeleter
@@ -37,6 +39,7 @@ namespace k8sbackend
 
         std::basic_string<std::byte> calcPasswordHash(const std::basic_string<std::byte> &iv,
             const std::string &cleartext, HashCtx && ctx);
+        
         const std::shared_ptr<httpserver::http_response> renderLogin(const httpserver::http_request &request);
 
     public:

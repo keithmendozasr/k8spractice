@@ -34,7 +34,7 @@ const shared_ptr<http_response> internalErrorHandler(const http_request &req)
 {
     auto logger = Logger::getRoot();
     NDCContextCreator logContext(req.get_requestor() + ":" + to_string(req.get_requestor_port()));
-    LOG4CPLUS_ERROR(logger, string("Error encountered handling ") + req.get_path());
+    LOG4CPLUS_ERROR(logger, "Error encountered handling " << req.get_path());
     return make_shared<string_response>("", 500);
 }
 
@@ -42,7 +42,7 @@ const shared_ptr<http_response> notFoundHandler(const http_request &req)
 {
     auto logger = Logger::getRoot();
     NDCContextCreator logContext(req.get_requestor() + ":" + to_string(req.get_requestor_port()));
-    LOG4CPLUS_ERROR(logger, string("No handler for ") + req.get_path());
+    LOG4CPLUS_ERROR(logger, "No handler for " << req.get_path());
     return make_shared<string_response>("", 404);
 }
 

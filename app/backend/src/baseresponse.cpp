@@ -48,7 +48,7 @@ namespace k8sbackend
         shared_ptr<http_response> response;
 
         auto path = request.get_path();
-        LOG4CPLUS_DEBUG(logger, string("Value of path: ") + path);
+        LOG4CPLUS_DEBUG(logger, "Value of path: " << path);
         if(path == "/api/load")
             response = make_shared<string_response>(renderLoad());
         else

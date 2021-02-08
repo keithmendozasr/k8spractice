@@ -143,29 +143,29 @@ namespace k8sbackend
 
                 if(equal(credHash.begin(), credHash.end(), savedPassword.data()))
                 {
-                    LOG4CPLUS_INFO(logger, string("User \"") + userVal + "\" authorized");
+                    LOG4CPLUS_INFO(logger, "User \"" << userVal << "\" authorized");
                     response = make_shared<string_response>("{data:\"hello\"}");
                 }
                 else
-                    LOG4CPLUS_DEBUG(logger, string("Failed to validate credential for \"") + userVal + "\"");
+                    LOG4CPLUS_DEBUG(logger, "Failed to validate credential for \"" << userVal << "\"");
             }
             else
-                LOG4CPLUS_DEBUG(logger, string("User \"") + userVal + "\" not found");
+                LOG4CPLUS_DEBUG(logger, "User \"" << userVal << "\" not found");
 
             if(!response)
             {
-                LOG4CPLUS_INFO(logger, string("User \"") + userVal + "\" not authorized");
+                LOG4CPLUS_INFO(logger, "User \"" << userVal << "\" not authorized");
                 response = make_shared<string_response>("", http::http_utils::http_unauthorized);
             }
         }
         catch(Json::Exception &e)
         {
-            LOG4CPLUS_ERROR(logger, string("Failed to parse request body. Reason: ") + e.what());
+            LOG4CPLUS_ERROR(logger, "Failed to parse request body. Reason: " << e.what());
             response = make_shared<string_response>("{\"error\":\"Parsing failed\"}", http::http_utils::http_bad_request);
         }
         catch(const pqxx::failure &e)
         {
-            LOG4CPLUS_ERROR(logger, string("DB-related error encountered: ") + e.what());
+            LOG4CPLUS_ERROR(logger, "DB-related error encountered: " << e.what());
             response = make_shared<string_response>("{\"error\":\"Internal error\"}", http::http_utils::http_internal_server_error);
         }
 
@@ -179,7 +179,7 @@ namespace k8sbackend
         shared_ptr<http_response> response;
 
         auto path = request.get_path();
-        LOG4CPLUS_DEBUG(logger, string("Value of path: ") + path);
+        LOG4CPLUS_DEBUG(logger, "Value of path: " << path);
         if(path == "/api/auth/login")
             response = renderLogin(request);
         else
